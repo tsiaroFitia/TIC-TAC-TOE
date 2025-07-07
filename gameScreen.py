@@ -35,31 +35,39 @@ symbol_font = pygame.font.SysFont("Arial", 60, bold=True)  # Pour les symboles X
 title_font = pygame.font.SysFont("Arial", 24, bold=True)    # Pour le titre
 player_font = pygame.font.SysFont("Arial", 22, bold=True)   # Pour les noms joueurs
 
-def create_player_card(title, symbol, bg_color, symbol_color):
-    """Crée une carte joueur textuelle stylisée"""
-    card = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
+def create_player_card(title, symbol, main_color, symbol_color):
+    """Crée une carte joueur stylisée avec ombre douce, symbole réduit et espace avec le titre"""
+    card = pygame.Surface((CARD_WIDTH + 5, CARD_HEIGHT + 12), pygame.SRCALPHA)
+
+    # Ombre floue simulée
+    for alpha, offset in [(30, 6), (20, 4), (10, 2)]:
+        shadow = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
+        pygame.draw.rect(shadow, (0, 0, 0, alpha), shadow.get_rect(), border_radius=BORDER_RADIUS)
+        card.blit(shadow, (offset, offset))
+
+    # Surface principale de la carte
+    surface = pygame.Surface((CARD_WIDTH, CARD_HEIGHT), pygame.SRCALPHA)
+    pygame.draw.rect(surface, main_color, surface.get_rect(), border_radius=BORDER_RADIUS)
     
-    # Fond de la carte avec ombre
-    shadow = pygame.Surface((CARD_WIDTH+6, CARD_HEIGHT+6), pygame.SRCALPHA)
-    pygame.draw.rect(shadow, BLACK, (0, 0, CARD_WIDTH+6, CARD_HEIGHT+6), border_radius=BORDER_RADIUS)
-    card.blit(shadow, (-3, -3))
-    pygame.draw.rect(card, bg_color, (0, 0, CARD_WIDTH, CARD_HEIGHT), border_radius=BORDER_RADIUS)
-    
-    # Symbole (X ou O) - plus grand et centré
+    # Symbole centré plus petit
+    symbol_font = pygame.font.SysFont("Arial", 36, bold=True)
     symbol_text = symbol_font.render(symbol, True, symbol_color)
-    symbol_rect = symbol_text.get_rect(center=(CARD_WIDTH//2, CARD_HEIGHT//2 - 10))
-    card.blit(symbol_text, symbol_rect)
-    
-    # Nom du joueur - en bas de la carte
+    symbol_rect = symbol_text.get_rect(center=(CARD_WIDTH // 2, CARD_HEIGHT // 2 - 20))
+    surface.blit(symbol_text, symbol_rect)
+
+    # Titre (sous le symbole, avec espacement)
     title_text = player_font.render(title, True, WHITE)
-    title_rect = title_text.get_rect(center=(CARD_WIDTH//2, CARD_HEIGHT - 25))
-    card.blit(title_text, title_rect)
-    
+    title_rect = title_text.get_rect(center=(CARD_WIDTH // 2, CARD_HEIGHT - 20))
+    surface.blit(title_text, title_rect)
+
+    # Fusion
+    card.blit(surface, (0, 0))
     return card
 
-# Création des cartes joueurs
-player_card = create_player_card("YOU", "X", PLAYER_CARD_COLOR, RED)
-robot_card = create_player_card("ROBOT", "O", ROBOT_CARD_COLOR, YELLOW)
+
+# Création des deux cartes identiques en style mais avec des couleurs et symboles différents
+player_card = create_player_card("YOU", "X", (60, 60, 120), RED)
+robot_card = create_player_card("ROBOT", "O", (60, 60, 120), YELLOW)
 
 # Positions des cartes
 PLAYER_CARD_POS = (WIDTH//4 - CARD_WIDTH//2, 30)
@@ -89,7 +97,7 @@ def check_win_positions():
     
     return None, None
 
-def draw_game():
+def draw_grid():
     """Dessine l'interface complète du jeu"""
     screen.fill(DARK_BLUE)
 
@@ -141,42 +149,32 @@ def draw_game():
 
 def main():
     global current_player, board
-    
-    # Initialisation du jeu
-    board = [["" for _ in range(3)] for _ in range(3)]
+    board = [["" for _ in range(3)] for _ in range(3)]  # Reset board at start
     current_player = "X"
-    
+
     clock = pygame.time.Clock()
-    
-    # Boucle principale
     while True:
+        draw_grid()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-                
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
-                
-                # Vérifier les clics sur la grille
                 for i in range(3):
                     for j in range(3):
                         cell_x = GRID_ORIGIN_X + j * (CELL_SIZE + MARGIN)
                         cell_y = GRID_ORIGIN_Y + i * (CELL_SIZE + MARGIN)
                         rect = pygame.Rect(cell_x, cell_y, CELL_SIZE, CELL_SIZE)
-                        
-                        if rect.collidepoint(x, y) and board[i][j] == "":
-                            board[i][j] = current_player
-                            winner, _ = check_win_positions()
-                            
-                            if winner:
-                                print(f"Le joueur {winner} a gagné !")
-                                pygame.time.delay(1500)
-                                return
-                                
-                            current_player = "O" if current_player == "X" else "X"
-        
-        draw_game()
+                        if rect.collidepoint(x, y):
+                            if board[i][j] == "":
+                                board[i][j] = current_player
+                                winner, _ = check_win_positions()
+                                if winner:
+                                    import winScreen
+                                    winScreen.main(winner)
+                                    return
+                                current_player = "O" if current_player == "X" else "X"
         clock.tick(60)
 
 if __name__ == "__main__":
